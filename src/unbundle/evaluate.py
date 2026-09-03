@@ -14,6 +14,7 @@ REPORTED_KINDS: tuple[LabelKind, ...] = (
     "FAILED_RETRY",
     "FEE_MISMATCH",
     "GATEWAY_OUTAGE",
+    "HELD_BACK",
     "MANGLED_UTR",
     "MISSING_SETTLEMENT",
     "NETWORK_UNKNOWN",
@@ -48,6 +49,9 @@ class MatchOutcome:
     # One list each and never two, so the run can add them up and show nothing fell out
     received: tuple[str, ...]
     unconfirmed: tuple[str, ...]
+    # What the fee mismatches cost, summed where the charge is known and the agreed rate is too. Accumulated here because the matcher already holds both numbers 
+    # and a report saying 44 payments were charged wrong without saying what that came to is not a number to act on
+    fee_overcharged: Paise = 0
 
 @dataclass(frozen=True, slots=True)
 class ClassResult:
@@ -72,6 +76,16 @@ class Report:
     money_at_risk_actual: Paise
     money_missed: Paise
     money_wrongly_cleared: Paise
+    # Both figures above read MISSING_SETTLEMENT alone, so they are silent on the seven other problem kinds. These two cover all eight, one as a count of 
+    # what went unnamed and one as the value of the entities nothing named at all
+    unnamed_problems: int
+    money_unexplained: Paise
+    # The money at stake per class, each a different kind of exposure. Deliberately never summed because a credit that arrived unattributed and a payment 
+    # owed back to a customer are not the same money and a total of them is a number describing nothing
+    money_unattributed_credit: Paise
+    money_owed_back: Paise
+    money_bank_charges: Paise
+    money_fee_overcharged: Paise
     # Due and not arrived yet, the only figure here that is not about a problem
     money_in_flight: Paise
     # Orders the merchant cannot tie to any payment. Not money missing, the payment very likely arrived, what is lost is knowing which order it belongs to
@@ -85,6 +99,14 @@ class Report:
     records: int
     seconds: float
     by_class: tuple[ClassResult, ...]
+    # The agent stage is a live model, not reproducible from the seed, so these four never enter ledger.json or by_class. They describe one run's agent output, 
+    # not the dataset
+    flagged_agent_explained: int
+    # Money whose disposition the verdict changes, wait or escalate. Never the whole of the line below it, which counts turnover sitting behind findings 
+    # that dispute a fee
+    money_agent_reclassified: Paise
+    value_behind_agent_findings: Paise
+    gateway_outage_agent_verified: int
 
     @property
     def match_rate_by_count(self) -> float:
@@ -115,7 +137,16 @@ class Report:
         return self.records / self.seconds
 
 
-def evaluate(dataset: Dataset, outcome: MatchOutcome, seconds: float) -> Report:
+def evaluate(
+    dataset: Dataset,
+    outcome: MatchOutcome,
+    seconds: float,
+    # Entity and kind pairs the agent stage named a verified cause for, and the entities it
+    # called GATEWAY_OUTAGE specifically. Both come from the adjudicator's arithmetic check,
+    # not from the model's word, and default empty so a no-key run scores exactly as before
+    agent_resolved: frozenset[tuple[str, str]] = frozenset(),
+    agent_outage: frozenset[str] = frozenset(),
+) -> Report:
     # Every money figure below is unsound if the fates do not cover the payments, so scoring comes after the check and not instead of it
     check_books(outcome, dataset.payments)
 
@@ -126,6 +157,7 @@ def evaluate(dataset: Dataset, outcome: MatchOutcome, seconds: float) -> Report:
             payments_by_settlement.setdefault(payment.settlement_id, set()).add(payment.payment_id)
 
     amount_by_payment = {payment.payment_id: payment.amount for payment in dataset.payments}
+    amount_by_settlement = {s.settlement_id: s.amount for s in dataset.settlements}
     credit_by_line = {index: line.credit for index, line in enumerate(dataset.bank_lines)}
 
     credits_matched = 0
@@ -165,7 +197,11 @@ def evaluate(dataset: Dataset, outcome: MatchOutcome, seconds: float) -> Report:
         if item.entity_id in in_flight_entities and item.kind == "MISSING_SETTLEMENT"
     )
 
-    missing = [label for label in dataset.labels if label.kind == "MISSING_SETTLEMENT"]
+    # Both kinds are money the merchant is owed and did not get, so both belong in the two figures
+    # below. A held back payment is the harder half, the settlement it names really did settle and
+    # the credit for it really did arrive, so nothing about the record looks wrong
+    owed = ("MISSING_SETTLEMENT", "HELD_BACK")
+    missing = [label for label in dataset.labels if label.kind in owed]
     money_at_risk_actual = sum(amount_by_payment.get(label.entity_id, 0) for label in missing)
     money_missed = sum(
         amount_by_payment.get(label.entity_id, 0)
@@ -178,6 +214,44 @@ def evaluate(dataset: Dataset, outcome: MatchOutcome, seconds: float) -> Report:
         for label in missing
         if label.entity_id in claimed_payments
     )
+    # Money missed reads one kind of the eight, so it is silent on every class the run really does miss and the detection table saying 13 of 13 
+    # outages went unnamed sits beside it saying nothing was missed. These two count the rest of them
+    unnamed_problems = sum(1 for pair in real_pairs if pair not in noticed_pairs)
+    # Value is summed over entities and not over labels, because one settlement carries four labels and adding its amount once per label reports four times 
+    # the money there is. Only an entity noticed under no kind at all counts, since an outage payment reported as a missing settlement is money the 
+    # merchant was told about under a name that is also true
+    amount_by_entity = amount_by_payment | amount_by_settlement
+    unexplained_entities = {
+        label.entity_id
+        for label in dataset.labels
+        if label.kind in PROBLEMS and label.entity_id not in noticed_entities
+    }
+    money_unexplained = sum(amount_by_entity.get(entity, 0) for entity in unexplained_entities)
+
+    # What each class costs, in rupees rather than as a count or a match rate. The largest exposure in a run is the credit nobody could attribute 
+    # and reporting it only as a percentage of value matched is the one number a merchant cannot act on
+    claimed_lines = {claim.line_index for claim in outcome.matched}
+    money_unattributed_credit = sum(
+        line.credit for index, line in enumerate(dataset.bank_lines) if index not in claimed_lines
+    )
+    # A second capture on one order is money owed back to a customer, so it is a liability the merchant carries and never money that failed to arrive
+    money_owed_back = sum(
+        amount_by_payment.get(item.entity_id, 0)
+        for item in outcome.flagged
+        if item.kind == "DUPLICATE_PAYMENT"
+    )
+    # Read off the settlements and the statement, both of which the matcher saw, so the figure is what the run concluded and not what the answer key knows
+    payment_settlement = {p.payment_id: p.settlement_id for p in dataset.payments}
+    money_bank_charges = 0
+    for claim in outcome.matched:
+        if not claim.payment_ids:
+            continue
+        settlement_id = payment_settlement.get(claim.payment_ids[0])
+        if settlement_id is None:
+            continue
+        gap = amount_by_settlement.get(settlement_id, 0) - credit_by_line.get(claim.line_index, 0)
+        if gap > 0:
+            money_bank_charges += gap
     money_at_risk_reported = sum(
         amount_by_payment.get(item.entity_id, 0)
         for item in outcome.flagged
@@ -214,6 +288,31 @@ def evaluate(dataset: Dataset, outcome: MatchOutcome, seconds: float) -> Report:
         for kind in REPORTED_KINDS
     )
 
+    # Money the agent explained, never money the agent cleared. agent_resolved can only ever contain entities group_findings already grouped from outcome.
+    # flagged, so this counts a subset of what was already flagged and moves nothing out of at risk or into received
+    # Keyed on the pair the way precision and _class_result already are, so a payment flagged under two kinds is credited only for the one the 
+    # agent was actually asked about
+    agent_explained = [
+        item for item in outcome.flagged if (item.entity_id, item.kind) in agent_resolved
+    ]
+    flagged_agent_explained = len(agent_explained)
+    # Two different claims, kept apart because summing them reads as money recovered and is not. A MISSING_SETTLEMENT verdict decides what the merchant does 
+    # with the payment itself, wait for a gateway to recover or escalate money that is never coming. Every other kind disputes a charge against a payment 
+    # that arrived, where the amount in question is the fee and the payment value only says how much turnover the finding sits behind
+    money_agent_reclassified = sum(
+        amount_by_payment.get(item.entity_id, 0)
+        for item in agent_explained
+        if item.kind == "MISSING_SETTLEMENT"
+    )
+    value_behind_agent_findings = sum(
+        amount_by_payment.get(item.entity_id, amount_by_settlement.get(item.entity_id, 0))
+        for item in agent_explained
+    )
+    # Checked against the planted label, not just counted, because the adjudicator verifies the citation's arithmetic and never whether GATEWAY_OUTAGE 
+    # was the label actually planted
+    gateway_outage_true = {label.entity_id for label in dataset.labels if label.kind == "GATEWAY_OUTAGE"}
+    gateway_outage_agent_verified = len(agent_outage & gateway_outage_true)
+
     return Report(
         credits_total=len(dataset.bank_lines),
         credits_claimed=len(outcome.matched),
@@ -227,6 +326,12 @@ def evaluate(dataset: Dataset, outcome: MatchOutcome, seconds: float) -> Report:
         money_at_risk_actual=money_at_risk_actual,
         money_missed=money_missed,
         money_wrongly_cleared=money_wrongly_cleared,
+        unnamed_problems=unnamed_problems,
+        money_unexplained=money_unexplained,
+        money_unattributed_credit=money_unattributed_credit,
+        money_owed_back=money_owed_back,
+        money_bank_charges=money_bank_charges,
+        money_fee_overcharged=outcome.fee_overcharged,
         money_in_flight=money_in_flight,
         money_unlinked=money_unlinked,
         money_fee_unverified=money_fee_unverified,
@@ -236,6 +341,10 @@ def evaluate(dataset: Dataset, outcome: MatchOutcome, seconds: float) -> Report:
         records=len(dataset.payments) + len(dataset.bank_lines),
         seconds=seconds,
         by_class=by_class,
+        flagged_agent_explained=flagged_agent_explained,
+        money_agent_reclassified=money_agent_reclassified,
+        value_behind_agent_findings=value_behind_agent_findings,
+        gateway_outage_agent_verified=gateway_outage_agent_verified,
     )
 
 
