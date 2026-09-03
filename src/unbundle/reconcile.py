@@ -182,9 +182,14 @@ def match(
 
         against = adjustments_by_settlement.get(settlement.settlement_id, [])
         deducted = sum(adjustment.amount for adjustment in against)
-        # A gap the adjustments do not cover is left unnamed rather than guessed at
-        if sum(payment.net for payment in members) - deducted != settlement.amount:
-            continue
+        shortfall = sum(payment.net for payment in members) - deducted - settlement.amount
+        if shortfall != 0:
+            # A settlement can leave one of its own payments out of the transfer, which puts the gap at exactly that payment's net, so a single
+            # member matching it is the one that was left out and everything else in the settlement still ties out. Two members matching is two
+            # answers and picking either one attributes the gap to the wrong payment, so it is left unnamed the way any other gap is
+            excluded = [payment for payment in members if payment.net == shortfall]
+            if len(excluded) != 1:
+                continue
 
         for adjustment in against:
             if adjustment.kind == "chargeback":
@@ -211,6 +216,7 @@ def match(
     in_flight: list[str] = []
     received: list[str] = []
     unconfirmed: list[str] = []
+    fee_overcharged: Paise = 0
     for payment in payments:
         # A failed attempt carries no money, no fee and no settlement, so every check below would read it as missing money and none of it would be true
         if payment.status != "captured":
@@ -226,12 +232,15 @@ def match(
             observed.append(Flagged(payment.payment_id, "NETWORK_UNKNOWN"))
         elif payment.fee != expected:
             flagged.append(Flagged(payment.payment_id, "FEE_MISMATCH"))
+            # Signed, so a payment charged under the agreed rate nets off one charged over it and
+            # the total is what the merchant is out of pocket rather than the size of the dispute
+            fee_overcharged += payment.fee - expected
 
         due = working_days_after(payment.happened_at.date(), 2)
         settlement = (
             None if payment.settlement_id is None else settlement_by_id.get(payment.settlement_id)
         )
-        # An id is not evidence the transfer happened, a settlement with status failed never reached the bank, so the payment it names is money 
+        # An id is not evidence the transfer happened, a settlement with status failed never reached the bank, so the payment it names is money
         # the merchant does not have
         if settlement is None or settlement.status == "failed":
             # The only thing separating a healthy payment from missing money is whether the due date has passed, so as_of is a parameter and never today's date.
@@ -278,6 +287,7 @@ def match(
         in_flight=tuple(in_flight),
         received=tuple(received),
         unconfirmed=tuple(unconfirmed),
+        fee_overcharged=fee_overcharged,
     )
 
 
