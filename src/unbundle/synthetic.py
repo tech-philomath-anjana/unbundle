@@ -135,7 +135,7 @@ class Dataset:
 
 
 # From https://razorpay.com/docs/payments/settlements/, T+2 counts working days and bank holidays are not working days, RBI lists bank holidays 
-# per region so only weekends are skipped here, match.py has its own copy because importing this one would pull the generator and its answer key into the matcher
+# per region so only weekends are skipped here, reconcile.py has its own copy because importing this one would pull the generator and its answer key into the matcher
 def working_days_after(start: date, days: int) -> date:
     moved = start
     added = 0
@@ -183,6 +183,8 @@ def _swapped_digit(utr: str, real_utrs: set[str]) -> str:
     raise ValueError(f"every digit swap on {utr} names a real settlement")
 
 
+# The last three digits go and the two left standing are the top of a five digit pad, so they stay 00 until the sequence outgrows three digits and
+# the date is all that survives, which names every settlement that day rather than one of them and the matcher has to refuse it
 def _narration(rng: random.Random, utr: str, real_utrs: set[str]) -> tuple[str, bool]:
     if rng.random() < MANGLED_UTR_RATE:
         damage = rng.random()
@@ -205,6 +207,8 @@ def generate(seed: int = DEFAULT_SEED, order_count: int = 5_000) -> Dataset:
     agreed_rate_by_payment: dict[str, Bps] = {}
 
     for index in range(order_count):
+        # randint is inclusive at both ends so the offset runs from 0 to WINDOW_DAYS and the window covers a day more than the constant names, dropping
+        # that day would take the most recent captures out of the file and those are the ones still in flight when the run ends
         placed_at = datetime(
             window_start.year,
             window_start.month,
@@ -447,8 +451,6 @@ def _build_settlements(
         if due is not None:
             by_date.setdefault(due, []).append(payment)
 
-    # A UTR is the date and a number, and SETTLEMENT_CYCLES_PER_DAY puts more than one settlement on a date, so truncating it leaves something that 
-    # fits a few of them and not one
     cycles: list[tuple[date, list[Payment]]] = []
     for settled_on in sorted(by_date):
         due_today = by_date[settled_on]
@@ -472,6 +474,8 @@ def _build_settlements(
         tax = sum(payment.tax for payment in group)
 
         deducted = 0
+        # Each refund is capped at half its own payment so the total taken off here cannot reach gross minus fees, the two deductions below are against
+        # payments outside this group and have no such cap, which is why they check the credit first
         for payment in group:
             if rng.random() < REFUND_RATE:
                 refund = rng.randint(1_000, max(1_001, payment.amount // 2))
@@ -570,7 +574,10 @@ def _build_settlements(
 
         for payment in group:
             assigned[payment.payment_id] = settlement_id
-        settled_earlier.extend(group)
+        # A failed settlement moved no money so its payments never settled, and a late refund taken against one of them would say settled earlier
+        # about a payment the same run labels missing
+        if status != "failed":
+            settled_earlier.extend(group)
 
     # Payment is frozen so settlement_id cannot be set after it is built, and the settlement is only known here
     rebuilt = [
