@@ -3,7 +3,12 @@ name = "unbundle"
 version = "0.1.0"
 description = "Works out which orders are inside each bank settlement and reports what it can't account for."
 requires-python = ">=3.11"
+# The deterministic pipeline and the tests run on the standard library alone, so a clone reproduces every published figure with nothing installed
 dependencies = []
+
+# The model client is an extra because it is only reached when a key is set
+[project.optional-dependencies]
+model = ["groq", "anthropic"]
 
 [build-system]
 requires = ["setuptools"]
