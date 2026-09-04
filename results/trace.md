@@ -1,0 +1,92 @@
+# Agent trace
+
+Model: openai/gpt-oss-120b
+
+- sorted 223 of 316 flagged findings into 34 candidate incidents and 63 standing alone
+- proposing for MISSING_SETTLEMENT: card captured 2026-08-17 between 12:00 and 16:00, 2 members
+-   turn 1: looked up 1 record(s) this turn, proposed SETTLEMENT_NEVER_SENT citing 2, accepted: 2 payments captured and never settled
+- proposing for MISSING_SETTLEMENT: card captured 2026-08-18 between 08:00 and 12:00, 4 members
+-   turn 1: looked up 1 record(s) this turn, proposed SETTLEMENT_FAILED citing 4, accepted: 4 payments on setl_00038, which failed
+- proposing for MISSING_SETTLEMENT: card captured 2026-08-18 between 20:00 and 24:00, 2 members
+-   turn 1: looked up 1 record(s) this turn, proposed SETTLEMENT_FAILED citing 3, rejected: cited setl_00038, not in the group
+-   turn 2: looked up 2 record(s) this turn, proposed SETTLEMENT_FAILED citing 2, accepted: 2 payments on setl_00038, which failed
+- proposing for MISSING_SETTLEMENT: card captured 2026-08-19 between 08:00 and 12:00, 3 members
+-   turn 1: looked up 1 record(s) this turn, proposed SETTLEMENT_FAILED citing 4, rejected: cited setl_00039, not in the group
+-   turn 2: looked up 2 record(s) this turn, proposed SETTLEMENT_FAILED citing 3, accepted: 3 payments on setl_00039, which failed
+- proposing for MISSING_SETTLEMENT: card captured 2026-08-19 between 12:00 and 16:00, 3 members
+-   turn 1: looked up 1 record(s) this turn, proposed SETTLEMENT_FAILED citing 4, rejected: cited setl_00039, not in the group
+-   turn 2: looked up 2 record(s) this turn, proposed SETTLEMENT_FAILED citing 3, accepted: 3 payments on setl_00039, which failed
+- proposing for MISSING_SETTLEMENT: card captured 2026-08-19 between 16:00 and 20:00, 6 members
+-   turn 1: looked up 2 record(s) this turn, proposed SETTLEMENT_FAILED citing 7, rejected: cited setl_00039, not in the group
+-   turn 2: looked up 1 record(s) this turn, proposed SETTLEMENT_NEVER_SENT citing 6, rejected: a cited payment was settled after all
+-   turn 3: looked up 2 record(s) this turn, proposed SETTLEMENT_FAILED citing 6, rejected: 1 cited payments were never assigned to a settlement
+- proposing for MISSING_SETTLEMENT: card captured 2026-08-19 between 20:00 and 24:00, 2 members
+-   turn 1: looked up 2 record(s) this turn, gave up, no cause fit
+- proposing for MISSING_SETTLEMENT: card captured 2026-08-24 between 12:00 and 16:00, 3 members
+-   turn 1: looked up 1 record(s) this turn, proposed SETTLEMENT_FAILED citing 4, rejected: cited setl_00048, not in the group
+-   turn 2: looked up 2 record(s) this turn, proposed SETTLEMENT_FAILED citing 3, accepted: 3 payments on setl_00048, which failed
+- proposing for MISSING_SETTLEMENT: emi captured 2026-08-19 between 12:00 and 16:00, 2 members
+-   turn 1: looked up 2 record(s) this turn, proposed SETTLEMENT_FAILED citing 3, rejected: cited setl_00039, not in the group
+-   turn 2: looked up 2 record(s) this turn, proposed SETTLEMENT_FAILED citing 2, accepted: 2 payments on setl_00039, which failed
+- proposing for MISSING_SETTLEMENT: netbanking captured 2026-08-19 between 12:00 and 16:00, 2 members
+-   turn 1: looked up 1 record(s) this turn, proposed SETTLEMENT_FAILED citing 3, rejected: cited setl_00039, not in the group
+-   turn 2: looked up 1 record(s) this turn, proposed SETTLEMENT_FAILED citing 2, accepted: 2 payments on setl_00039, which failed
+- proposing for MISSING_SETTLEMENT: netbanking captured 2026-08-19 between 16:00 and 20:00, 3 members
+-   turn 1: looked up 2 record(s) this turn, proposed SETTLEMENT_FAILED citing 3, rejected: 1 cited payments were never assigned to a settlement
+-   turn 2: looked up 2 record(s) this turn, proposed SETTLEMENT_NEVER_SENT citing 3, rejected: a cited payment was settled after all
+-   turn 3: looked up 2 record(s) this turn, gave up, no cause fit
+- proposing for MISSING_SETTLEMENT: netbanking captured 2026-08-24 between 16:00 and 20:00, 3 members
+-   turn 1: looked up 1 record(s) this turn, proposed SETTLEMENT_FAILED citing 3, accepted: 3 payments on setl_00048, which failed
+- proposing for MISSING_SETTLEMENT: upi captured 2026-08-13 between 12:00 and 16:00, 2 members
+-   turn 1: looked up 1 record(s) this turn, proposed SETTLEMENT_NEVER_SENT citing 2, accepted: 2 payments captured and never settled
+- proposing for MISSING_SETTLEMENT: upi captured 2026-08-14 between 12:00 and 16:00, 2 members
+-   turn 1: looked up 1 record(s) this turn, proposed SETTLEMENT_NEVER_SENT citing 2, accepted: 2 payments captured and never settled
+- proposing for MISSING_SETTLEMENT: upi captured 2026-08-15 between 16:00 and 20:00, 2 members
+-   turn 1: looked up 1 record(s) this turn, proposed SETTLEMENT_NEVER_SENT citing 2, accepted: 2 payments captured and never settled
+- proposing for MISSING_SETTLEMENT: upi captured 2026-08-18 between 08:00 and 12:00, 6 members
+-   turn 1: looked up 1 record(s) this turn, proposed SETTLEMENT_FAILED citing 6, accepted: 6 payments on setl_00038, which failed
+- proposing for MISSING_SETTLEMENT: upi captured 2026-08-18 between 12:00 and 16:00, 2 members
+-   turn 1: looked up 1 record(s) this turn, proposed SETTLEMENT_FAILED citing 3, rejected: cited setl_00038, not in the group
+-   turn 2: looked up 2 record(s) this turn, proposed SETTLEMENT_FAILED citing 2, accepted: 2 payments on setl_00038, which failed
+- proposing for MISSING_SETTLEMENT: upi captured 2026-08-18 between 16:00 and 20:00, 8 members
+-   turn 1: looked up 1 record(s) this turn, proposed SETTLEMENT_FAILED citing 8, accepted: 8 payments on setl_00038, which failed
+- proposing for MISSING_SETTLEMENT: upi captured 2026-08-18 between 20:00 and 24:00, 5 members
+-   turn 1: looked up 2 record(s) this turn, proposed SETTLEMENT_FAILED citing 5, accepted: 5 payments on setl_00038, which failed
+- proposing for MISSING_SETTLEMENT: upi captured 2026-08-19 between 08:00 and 12:00, 2 members
+-   turn 1: looked up 2 record(s) this turn, proposed SETTLEMENT_FAILED citing 3, rejected: cited setl_00039, not in the group
+-   turn 2: looked up 2 record(s) this turn, proposed SETTLEMENT_FAILED citing 2, accepted: 2 payments on setl_00039, which failed
+- proposing for MISSING_SETTLEMENT: upi captured 2026-08-19 between 12:00 and 16:00, 13 members
+-   turn 1: looked up 2 record(s) this turn, proposed SETTLEMENT_FAILED citing 13, rejected: 10 cited payments were never assigned to a settlement
+-   turn 2: looked up 2 record(s) this turn, gave up, no cause fit
+- proposing for MISSING_SETTLEMENT: upi captured 2026-08-19 between 16:00 and 20:00, 4 members
+-   turn 1: BadRequestError: Error code: 400 - {'error': {'message': 'Tool choice is required, but model did not call a tool', 'type': 'invalid_request_error', 'code': 'tool_use_failed', 'failed_generation': ''}}, retrying
+-   turn 2: looked up 2 record(s) this turn, proposed SETTLEMENT_FAILED citing 4, accepted: 4 payments on setl_00039, which failed
+- proposing for MISSING_SETTLEMENT: upi captured 2026-08-19 between 20:00 and 24:00, 2 members
+-   turn 1: looked up 1 record(s) this turn, proposed SETTLEMENT_FAILED citing 3, rejected: cited setl_00039, not in the group
+-   turn 2: looked up 1 record(s) this turn, proposed SETTLEMENT_FAILED citing 2, accepted: 2 payments on setl_00039, which failed
+- proposing for MISSING_SETTLEMENT: upi captured 2026-08-24 between 08:00 and 12:00, 7 members
+-   turn 1: looked up 1 record(s) this turn, proposed SETTLEMENT_FAILED citing 7, accepted: 7 payments on setl_00048, which failed
+- proposing for MISSING_SETTLEMENT: upi captured 2026-08-24 between 12:00 and 16:00, 3 members
+-   turn 1: looked up 1 record(s) this turn, proposed SETTLEMENT_FAILED citing 3, rejected: 1 cited payments were never assigned to a settlement
+-   turn 2: looked up 1 record(s) this turn, proposed SETTLEMENT_FAILED citing 4, rejected: cited setl_00048, not in the group
+-   turn 3: looked up 1 record(s) this turn, proposed SETTLEMENT_FAILED citing 3, rejected: cited setl_00048, not in the group
+- proposing for MISSING_SETTLEMENT: upi captured 2026-08-24 between 16:00 and 20:00, 9 members
+-   turn 1: looked up 1 record(s) this turn, proposed SETTLEMENT_FAILED citing 10, rejected: cited setl_00048, not in the group
+-   turn 2: looked up 2 record(s) this turn, proposed SETTLEMENT_FAILED citing 9, accepted: 9 payments on setl_00048, which failed
+- proposing for MISSING_SETTLEMENT: upi captured 2026-08-24 between 20:00 and 24:00, 5 members
+-   turn 1: looked up 2 record(s) this turn, proposed SETTLEMENT_FAILED citing 5, accepted: 5 payments on setl_00048, which failed
+- proposing for MISSING_SETTLEMENT: upi captured 2026-08-26 between 12:00 and 16:00, 2 members
+-   turn 1: BadRequestError: Error code: 400 - {'error': {'message': "Tool call validation failed: tool call validation failed: attempted to call tool 'func=resolve' which was not in request.tools", 'type': 'invalid_request_error', 'code': 'tool_use_failed', 'failed_generation': '{"name": "func=resolve", "arguments": {"cause":"SETTLEMENT_NEVER_SENT","cited":["pay_001928","pay_002305"]}}'}}, retrying
+-   turn 2: looked up 1 record(s) this turn, proposed SETTLEMENT_NEVER_SENT citing 2, accepted: 2 payments captured and never settled
+- proposing for FEE_MISMATCH: card payments, 9 members
+-   turn 1: looked up 1 record(s) this turn, proposed RATE_CARD_MISMATCH citing 9, accepted: 9 payments charged off the agreed rate
+- proposing for FEE_MISMATCH: emi payments, 3 members
+-   turn 1: looked up 2 record(s) this turn, proposed RATE_CARD_MISMATCH citing 3, accepted: 3 payments charged off the agreed rate
+- proposing for FEE_MISMATCH: netbanking payments, 4 members
+-   turn 1: looked up 1 record(s) this turn, proposed RATE_CARD_MISMATCH citing 4, accepted: 4 payments charged off the agreed rate
+- proposing for FEE_MISMATCH: upi payments, 12 members
+-   turn 1: looked up 1 record(s) this turn, proposed RATE_CARD_MISMATCH citing 12, accepted: 12 payments charged off the agreed rate
+- proposing for BANK_FEE_DEDUCTED: 15 credits, 15 members
+-   turn 1: looked up 1 record(s) this turn, proposed BANK_TRANSFER_CHARGE citing 15, accepted: 15 credits short by a transfer charge
+- proposing for MANGLED_UTR: 8 credits, 8 members
+-   turn 1: looked up 1 record(s) this turn, gave up, no cause fit
