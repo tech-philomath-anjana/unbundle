@@ -47,7 +47,9 @@ def _agent_verified(explanation: Explanation) -> tuple[frozenset[tuple[str, str]
     return resolved, outage
 
 
-def run(seed: int = DEFAULT_SEED, order_count: int = 5_000, as_of: date = WINDOW_END) -> None:
+# The agent stage is what this number costs and not the matcher, and a bigger count makes more groups than a free tier's daily
+# token ceiling allows, so the published run would be one nobody cloning this could reproduce
+def run(seed: int = DEFAULT_SEED, order_count: int = 3_000, as_of: date = WINDOW_END) -> None:
     dataset = generate(seed=seed, order_count=order_count)
     write_csvs(dataset, DATA)
 
@@ -251,6 +253,10 @@ def _write_report(
             "Grouped, investigated, and left undiagnosed rather than guessed at.",
             "",
         ]
+        # The model's own reason for stopping rather than a sentence written here, so the report says what was ruled out
+        # and not just that nothing was named
+        lines += [f"- {incident.shared}. {incident.reason.rstrip('.')}." for incident in refused]
+        lines.append("")
 
     if explanation.individual:
         lines += [
