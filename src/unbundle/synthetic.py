@@ -90,6 +90,11 @@ NETWORK_UNKNOWN_RATE = 0.06
 # reports money the merchant never got
 SETTLEMENT_FAILED_RATE = 0.03
 
+# From https://razorpay.com/docs/payments/settlements/, Razorpay settles only what the balance covers and "we will only choose the ones that add up to 
+# your current live balance", so a payment sits in the export naming a settlement whose transfer left it out. The credit still ties out against the reduced amount,
+# so no step of the cascade sees anything wrong and the payment is reported as arrived
+HELD_BACK_RATE = 0.06
+
 # From https://razorpay.com/docs/api/settlements/fetch-recon/, a refund is settled as a debit inside a settlement, here the refund is against 
 # a payment that settled in an earlier cycle so the credit is short and none of the payments in it explain why
 LATE_REFUND_RATE = 0.10
@@ -403,7 +408,10 @@ def _assign_settlement_dates(
 
         due = working_days_after(payment.happened_at.date(), 2)
 
-        if _in_outage(payment):
+        # An outage payment still owes its two working days before anything is owed on it, so the
+        # in flight test comes first. Labelling it missing while it is not yet due asserts money
+        # gone that the export cannot show gone, and the matcher reading only the export is right
+        if _in_outage(payment) and due <= WINDOW_END:
             labels.append(Label("MISSING_SETTLEMENT", payment.payment_id, f"due {due}, never settled"))
             labels.append(
                 Label(
@@ -544,12 +552,20 @@ def _build_settlements(
         if rng.random() < SETTLEMENT_FAILED_RATE:
             status = "failed"
 
+        # Only on a settlement that sent money, since a failed one held everything back and its payments are already labelled. Never the last payment in 
+        # a cycle either, a settlement holding back its only member would send nothing and is the failed case under a different name
+        held_back: Payment | None = None
+        if status == "processed" and len(group) > 1 and rng.random() < HELD_BACK_RATE:
+            candidate = rng.choice(group)
+            if candidate.net < gross - fees - deducted:
+                held_back = candidate
+
         settlements.append(
             Settlement(
                 settlement_id=settlement_id,
                 utr=_utr(settled_on, sequence),
                 settled_at=datetime(settled_on.year, settled_on.month, settled_on.day, 11, 0),
-                amount=gross - fees - deducted,
+                amount=gross - fees - deducted - (held_back.net if held_back else 0),
                 fees=fees,
                 tax=tax,
                 status=status,
@@ -567,17 +583,31 @@ def _build_settlements(
                 )
         else:
             if len(group) > 1:
+                # Assigned and not paid, because a settlement can hold one of its payments back and then the credit covers one fewer than it names
                 labels.append(
-                    Label("BATCHED", settlement_id, f"{len(group)} payments in one credit")
+                    Label("BATCHED", settlement_id, f"{len(group)} payments assigned to one credit")
                 )
             labels.extend(_rounding_labels(group, settlement_id, agreed_rate_by_payment))
+            if held_back is not None:
+                labels.append(
+                    Label(
+                        "HELD_BACK",
+                        held_back.payment_id,
+                        f"assigned to {settlement_id}, left out of the transfer",
+                    )
+                )
 
+        # The export still names the settlement, which is the whole of the damage, a matcher
+        # reading the id and finding the credit has no reason to look further
         for payment in group:
             assigned[payment.payment_id] = settlement_id
         # A failed settlement moved no money so its payments never settled, and a late refund taken against one of them would say settled earlier
         # about a payment the same run labels missing
         if status != "failed":
-            settled_earlier.extend(group)
+            # A held back payment did not settle either, so a later refund drawn against it would
+            # say settled earlier about money that never moved, which is the same contradiction
+            # the failed settlement guard above exists to stop
+            settled_earlier.extend(payment for payment in group if payment is not held_back)
 
     # Payment is frozen so settlement_id cannot be set after it is built, and the settlement is only known here
     rebuilt = [
