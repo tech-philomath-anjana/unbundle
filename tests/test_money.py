@@ -64,6 +64,51 @@ def test_parse_amount_refuses_non_numeric_characters():
 def test_parse_amount_zero():
     assert parse_amount("0") == 0
 
+# 0.-5 comes back as -5 paise, and a negative amount is a value the rest of the project treats as impossible
+def test_parse_amount_refuses_a_sign_after_the_decimal_point():
+    with pytest.raises(ValueError):
+        parse_amount("0.-5")
+
+    # 1.-5 comes back as 95 paise, which raises nothing and reads as an ordinary amount
+    with pytest.raises(ValueError):
+        parse_amount("1.-5")
+
+# format_amount never writes a sign, so a cell carrying one came from somewhere else and +5 reading
+# as five rupees hides that
+def test_parse_amount_refuses_a_leading_sign():
+    with pytest.raises(ValueError):
+        parse_amount("+5")
+
+# 1_0 comes back as ten rupees, so a cell nobody could have written on purpose is read as a number
+# instead of being refused
+def test_parse_amount_refuses_underscores_between_digits():
+    with pytest.raises(ValueError):
+        parse_amount("1_0")
+
+# isdigit alone passes Arabic numerals so the guard is isascii and isdigit, and without both of them
+# ١٢ comes back as twelve rupees
+def test_parse_amount_refuses_non_ascii_digits():
+    with pytest.raises(ValueError):
+        parse_amount("١٢")
+
+# Every CSV amount comes out of format_amount and it always writes both halves, so a missing half
+# means the cell came from somewhere else and picking which half it is invents a number
+def test_parse_amount_refuses_a_missing_half():
+    with pytest.raises(ValueError):
+        parse_amount(".50")
+
+    with pytest.raises(ValueError):
+        parse_amount("5.")
+
+# A blank cell reaches int and raises invalid literal for int, so the message names Python's problem
+# and not the column the merchant has to go and fix
+def test_parse_amount_refuses_blank_with_its_own_message():
+    with pytest.raises(ValueError, match="Amount must be digits"):
+        parse_amount("")
+
+    with pytest.raises(ValueError, match="Amount must be digits"):
+        parse_amount("   ")
+
 def test_format_amount_refuses_negative():
     with pytest.raises(ValueError):
         format_amount(-12345)
