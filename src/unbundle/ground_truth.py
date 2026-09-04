@@ -11,6 +11,10 @@ LabelKind = Literal[
     "FAILED_RETRY",
     "FEE_MISMATCH",
     "GATEWAY_OUTAGE",
+    # A payment the export assigns to a settlement whose transfer left it out. Kept apart from MISSING_SETTLEMENT 
+    # because that one says never settled and this payment names a settlement that did settle and a detail line 
+    # contradicting its own record is how three answer key bugs in this project started
+    "HELD_BACK",
     "IN_FLIGHT",
     "MANGLED_UTR",
     "MISSING_SETTLEMENT",
