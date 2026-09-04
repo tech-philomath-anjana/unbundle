@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import time
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from types import SimpleNamespace
@@ -30,6 +31,17 @@ BANK_FEE_CEILING: Paise = 10_000
 # Bounded so a model that never resolves or gives up cannot spin forever, distinct from MAX_TURNS above, which retries a whole proposal after a rejection
 INNER_MAX_ROUNDS = 4
 
+# The provider refuses a malformed generation before the model has decided anything, so the request goes again rather than spending an outer turn on it.
+# Narrow on purpose, a rejected key answers the same way however many times it is asked, and a rate limit has RATE_LIMIT_ATTEMPTS below because it does not
+TOOL_CALL_ATTEMPTS = 2
+
+# A per minute ceiling clears in about two seconds, so a 429 naming it is a queue rather than a refusal and treating it as one loses most of a run's groups.
+# A daily one is the opposite and gets no retry at all, see _is_daily_limit
+RATE_LIMIT_ATTEMPTS = 6
+
+# Only reached when the provider names no wait of its own, since the message carries one whenever the minute is what ran out
+RATE_LIMIT_MAX_WAIT = 60.0
+
 # A closed set, because a small model picks from a list reliably and writes about its own uncertainty badly. A cause outside the set is rejected by _adjudicate
 # and giving up is its own tool rather than an entry here, so it never has to be checked against the records the way a real cause does
 CAUSES = (
@@ -37,6 +49,7 @@ CAUSES = (
     "BANK_TRANSFER_CHARGE",
     "RATE_CARD_MISMATCH",
     "SETTLEMENT_NEVER_SENT",
+    "SETTLEMENT_FAILED",
 )
 
 @dataclass(frozen=True, slots=True)
@@ -90,6 +103,10 @@ class Proposal:
     # Why the loop came back empty when the request itself was fine, because a reply with no tool call in it and a model that looked things up until the
     # round cap stopped it are different problems with the same empty answer, and one of them is fixed by raising a constant we own
     stopped_because: str | None = None
+    # The model's own words for giving up, distinct from error and stopped_because above which
+    # describe the plumbing failing rather than the model deciding. Kept here rather than
+    # discarded, since a refusal nobody can read tells a merchant no more than an empty answer does
+    reason: str | None = None
 
 # Always a Proposal rather than a bare answer or None, so the model's own decision to stop stays visible to the caller. Only the resolution is checked
 # against the records, a lookup in between is a read the model chose for itself
@@ -301,7 +318,8 @@ LOOKUP_TOOLS = (
 DECISION_TOOLS = (
     {
         "name": "resolve",
-        "description": "Answer with a cause and the record ids that prove it.",
+        "description": "Answer with a cause and the ids of this group's own members it explains. "
+        "A record looked up along the way is evidence, not something to cite.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -315,7 +333,15 @@ DECISION_TOOLS = (
     {
         "name": "give_up",
         "description": "Answer that no cause fits, without citing anything.",
-        "input_schema": {"type": "object", "properties": {}, "additionalProperties": False},
+        # A required field rather than an empty schema, a tool with no parameters at all is the
+        # shape a model under forced tool choice struggles to call and falls back to prose,
+        # the wrong tool name, or raw JSON instead
+        "input_schema": {
+            "type": "object",
+            "properties": {"reason": {"type": "string"}},
+            "required": ["reason"],
+            "additionalProperties": False,
+        },
     },
 )
 TOOLS = LOOKUP_TOOLS + DECISION_TOOLS
@@ -352,7 +378,13 @@ def run_tool_loop(
             cited = tuple(block.input.get("cited", []))
             return Proposal(cause=cause, cited=cited, gave_up=False, lookups=tuple(looked_up))
         if block.name == "give_up":
-            return Proposal(cause=None, cited=(), gave_up=True, lookups=tuple(looked_up))
+            return Proposal(
+                cause=None,
+                cited=(),
+                gave_up=True,
+                lookups=tuple(looked_up),
+                reason=block.input.get("reason"),
+            )
 
         lookup = lookups.get(block.name)
         # A tool name outside the offered set is not one the client sent, an error goes back rather than a crash so a model that names the wrong tool can
@@ -450,7 +482,7 @@ def explain(
                     member_ids=group.member_ids,
                     cited_ids=(),
                     accepted=True,
-                    reason="the model looked and found no cause it could support",
+                    reason=proposal.reason or "the model looked and found no cause it could support",
                     turns=turn,
                     lookups=tuple(lookups_so_far),
                 )
@@ -548,7 +580,9 @@ def _adjudicate(
 
     outside = [entity for entity in cited if entity not in group.member_ids]
     if outside:
-        return False, f"cited {len(outside)} records that are not in the group"
+        # Named and not just counted, so a model that cited one wrong id among several has
+        # something to remove on the next turn instead of resending the identical proposal
+        return False, f"cited {', '.join(outside)}, not in the group"
     if not cited:
         return False, "cited no records"
 
@@ -604,6 +638,32 @@ def _adjudicate(
         if fits:
             return False, f"{len(members)} payments sharing one method and one window is GATEWAY_OUTAGE's shape, not this cause's"
         return True, f"{len(members)} payments captured and never settled"
+
+    if cause == "SETTLEMENT_FAILED":
+        # This answers why money never arrived, which is the only thing a MISSING_SETTLEMENT finding asks. A fee charged off the rate card was already wrong
+        # before the settlement was built, so accepting it there would hand a FEE_MISMATCH finding a verdict about something else and report it as explained
+        if group.kind != "MISSING_SETTLEMENT":
+            return False, f"a failed settlement does not explain a {group.kind} finding"
+        members = [by_id[entity] for entity in cited if entity in by_id]
+        # The same empty set the cause above carries a guard for, a group of settlement ids leaves nothing for the checks below to disagree with and every
+        # one of them passes over an empty list, so the claim would be granted on no evidence at all
+        if not members:
+            return False, "cited no payments"
+        # A payment the gateway never assigned anywhere is SETTLEMENT_NEVER_SENT's story, and a group holding some of each is two stories, so the claim has
+        # to name only the ones that were assigned and lose it if it reaches wider
+        unassigned = [payment for payment in members if payment.settlement_id is None]
+        if unassigned:
+            return False, f"{len(unassigned)} cited payments were never assigned to a settlement"
+        alive = [
+            payment
+            for payment in members
+            if payment.settlement_id not in settlement_by_id
+            or settlement_by_id[payment.settlement_id].status != "failed"
+        ]
+        if alive:
+            return False, f"{len(alive)} cited payments name a settlement that did not fail"
+        failed_ids = sorted({payment.settlement_id for payment in members})
+        return True, f"{len(members)} payments on {', '.join(failed_ids)}, which failed"
 
     return False, "no check exists for that cause"
 
@@ -764,6 +824,29 @@ def _as_anthropic_response(completion) -> SimpleNamespace:
     return SimpleNamespace(content=blocks)
 
 
+# Matched on the message rather than the exception type, because the two SDKs raise their own classes and importing either one here is what the lazy imports
+# below exist to avoid
+def _is_rate_limit(message: str) -> bool:
+    return "rate_limit" in message or "Error code: 429" in message
+
+
+# The two ceilings arrive as the same 429 and are opposite problems. A run that spent the day's tokens cannot get them back by waiting, and the waits it is
+# handed run minutes rather than seconds and grow, so RATE_LIMIT_ATTEMPTS of them per group is hours spent on a budget that only returns tomorrow
+def _is_daily_limit(message: str) -> bool:
+    return "TPD" in message or "tokens per day" in message
+
+
+# Minutes and seconds as well as bare seconds, because the daily ceiling states its wait as 4m59.808s and reading only the seconds form matches none of
+# those, falling back to a backoff of our own that has no relation to what was asked for
+def _retry_after(message: str, attempt: int) -> float:
+    named = re.search(r"try again in (?:([0-9]+)m)?([0-9.]+)s", message)
+    if named is None:
+        return min(float(2**attempt), RATE_LIMIT_MAX_WAIT)
+    minutes = float(named.group(1) or 0)
+    # A tenth of a second past what the provider named, since the moment it names is when the window clears and asking exactly then can arrive before it has
+    return min(minutes * 60 + float(named.group(2)) + 0.1, RATE_LIMIT_MAX_WAIT)
+
+
 # Both providers fail the same way and the handling sits here rather than once inside each closure, because a copy per provider is a rule that can go out
 # of step with itself, and because an except reachable only through an installed SDK and a live key is an except nothing can watch
 def _propose_or_report(
@@ -771,22 +854,42 @@ def _propose_or_report(
     messages: list[dict],
     lookups: Mapping[str, Callable[[dict], dict]],
 ) -> Proposal:
-    try:
-        return run_tool_loop(call_model, messages, lookups)
-    except Exception as failure:
-        # A request failure is not the model giving up, it never got to decide anything, so the type and message go out with it, because a rate limit,
-        # a rejected key and a wrong model name are different jobs and used to arrive as one sentence about the reply
+    # Every attempt starts from the opening prompt rather than resuming the one that broke, so the lookups the loop reports are the ones that attempt
+    # really made and a retry cannot inherit tool results it never asked for
+    opening = list(messages)
+    # Counted apart, because a group that meets both would otherwise spend one budget on the other and report whichever it ran out of second
+    malformed = waited = 0
+    while True:
+        try:
+            return run_tool_loop(call_model, list(opening), lookups)
+        except Exception as failure:
+            # A request failure is not the model giving up, it never got to decide anything, so the type and message go out with it, because a rate limit,
+            # a rejected key and a wrong model name are different jobs and one sentence about the reply names none of them
 
-        # Groq's rate limit body carries the account's org id, useful to nobody reading a trace and not something a public repo needs, so it is stripped here 
-        # rather than left for results/ to carry into the commit
-        message = re.sub(r"org_[A-Za-z0-9]+", "org_<redacted>", str(failure))
-        return Proposal(
-            cause=None,
-            cited=(),
-            gave_up=False,
-            lookups=(),
-            error=f"{type(failure).__name__}: {message}",
-        )
+            # Groq's rate limit body carries the account's org id, useful to nobody reading a trace and not something a public repo needs, so it is stripped here
+            # rather than left in results/ when that goes into the commit
+            message = re.sub(r"org_[A-Za-z0-9]+", "org_<redacted>", str(failure))
+            # Waited out rather than retried straight away, because asking again inside the same minute spends tokens on a window that has not moved and
+            # brings the failure forward. The daily ceiling falls through to the report below, so a run that has spent the budget says so rather than
+            # waiting an hour to say the same thing
+            if _is_rate_limit(message) and not _is_daily_limit(message) and waited < RATE_LIMIT_ATTEMPTS:
+                waited += 1
+                time.sleep(_retry_after(message, waited))
+                continue
+            # output_parse_failed is Groq's name for the same event tool_use_failed names elsewhere, the provider refusing a malformed generation before
+            # the model decided anything, so it gets the same narrow retry
+            if (
+                "tool_use_failed" in message or "output_parse_failed" in message
+            ) and malformed < TOOL_CALL_ATTEMPTS - 1:
+                malformed += 1
+                continue
+            return Proposal(
+                cause=None,
+                cited=(),
+                gave_up=False,
+                lookups=(),
+                error=f"{type(failure).__name__}: {message}",
+            )
 
 
 # Imported inside the function and not at the top, so a machine without the package still runs the deterministic pipeline rather than failing at import
