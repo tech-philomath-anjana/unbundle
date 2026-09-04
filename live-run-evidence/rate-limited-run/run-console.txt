@@ -1,0 +1,5 @@
+.venv/bin/python -m unbundle.run
+51/64 credits explained (79.7% count, 89.2% value), precision 99.7%, 144,486 rec/s
+sorted 527 of 688 findings -> 80 groups: 8 diagnosed, 1 gave up, 2 refused, 69 unanswered; 92 individual; 26 findings given a verified cause, Rs 34,837.64 reclassified
+at risk Rs 12,22,793.66, missed Rs 925.63, wrongly cleared Rs 1,858.70, 20 problems unnamed on Rs 2,52,504.80
+results/report.md  results/ledger.json  results/trace.md

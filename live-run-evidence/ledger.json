@@ -1,0 +1,793 @@
+{
+  "as_of": "2026-08-28",
+  "by_class": [
+    {
+      "detected": 20,
+      "expected": 20,
+      "kind": "BANK_FEE_DEDUCTED"
+    },
+    {
+      "detected": 44,
+      "expected": 44,
+      "kind": "BATCHED"
+    },
+    {
+      "detected": 6,
+      "expected": 6,
+      "kind": "CHARGEBACK_LATER"
+    },
+    {
+      "detected": 3,
+      "expected": 3,
+      "kind": "DUPLICATE_PAYMENT"
+    },
+    {
+      "detected": 11,
+      "expected": 11,
+      "kind": "FAILED_RETRY"
+    },
+    {
+      "detected": 1,
+      "expected": 1,
+      "kind": "FEE_MISMATCH"
+    },
+    {
+      "detected": 0,
+      "expected": 0,
+      "kind": "GATEWAY_OUTAGE"
+    },
+    {
+      "detected": 0,
+      "expected": 3,
+      "kind": "HELD_BACK"
+    },
+    {
+      "detected": 4,
+      "expected": 4,
+      "kind": "MANGLED_UTR"
+    },
+    {
+      "detected": 14,
+      "expected": 14,
+      "kind": "MISSING_SETTLEMENT"
+    },
+    {
+      "detected": 4,
+      "expected": 4,
+      "kind": "NETWORK_UNKNOWN"
+    },
+    {
+      "detected": 23,
+      "expected": 23,
+      "kind": "ORDER_ID_MISSING"
+    },
+    {
+      "detected": 2,
+      "expected": 2,
+      "kind": "PARTIAL_REFUND"
+    },
+    {
+      "detected": 26,
+      "expected": 29,
+      "kind": "ROUNDING_DRIFT"
+    },
+    {
+      "detected": 82,
+      "expected": 91,
+      "kind": "T_PLUS_TWO"
+    },
+    {
+      "detected": 8,
+      "expected": 8,
+      "kind": "UNKNOWN_CREDIT"
+    },
+    {
+      "detected": 2,
+      "expected": 2,
+      "kind": "UNLINKED_ORDER"
+    }
+  ],
+  "credit_value_matched": 39504200,
+  "credit_value_total": 42299572,
+  "credits_matched": 55,
+  "credits_total": 63,
+  "flagged": [
+    {
+      "entity_id": "NEFT-HDFCN26080683222-VENDOR",
+      "kind": "UNKNOWN_CREDIT"
+    },
+    {
+      "entity_id": "NEFT-HDFCN26080749388-VENDOR",
+      "kind": "UNKNOWN_CREDIT"
+    },
+    {
+      "entity_id": "NEFT-HDFCN26080756752-VENDOR",
+      "kind": "UNKNOWN_CREDIT"
+    },
+    {
+      "entity_id": "NEFT-HDFCN26081487591-VENDOR",
+      "kind": "UNKNOWN_CREDIT"
+    },
+    {
+      "entity_id": "NEFT-HDFCN26081972417-VENDOR",
+      "kind": "UNKNOWN_CREDIT"
+    },
+    {
+      "entity_id": "NEFT-HDFCN26082145271-VENDOR",
+      "kind": "UNKNOWN_CREDIT"
+    },
+    {
+      "entity_id": "NEFT-HDFCN26082617312-VENDOR",
+      "kind": "UNKNOWN_CREDIT"
+    },
+    {
+      "entity_id": "NEFT-HDFCN26082619011-VENDOR",
+      "kind": "UNKNOWN_CREDIT"
+    },
+    {
+      "entity_id": "SHOP-000040",
+      "kind": "UNLINKED_ORDER"
+    },
+    {
+      "entity_id": "SHOP-000183",
+      "kind": "UNLINKED_ORDER"
+    },
+    {
+      "entity_id": "pay_000008",
+      "kind": "MISSING_SETTLEMENT"
+    },
+    {
+      "entity_id": "pay_000017b",
+      "kind": "DUPLICATE_PAYMENT"
+    },
+    {
+      "entity_id": "pay_000019",
+      "kind": "MISSING_SETTLEMENT"
+    },
+    {
+      "entity_id": "pay_000022",
+      "kind": "MISSING_SETTLEMENT"
+    },
+    {
+      "entity_id": "pay_000031",
+      "kind": "MISSING_SETTLEMENT"
+    },
+    {
+      "entity_id": "pay_000044",
+      "kind": "MISSING_SETTLEMENT"
+    },
+    {
+      "entity_id": "pay_000052b",
+      "kind": "DUPLICATE_PAYMENT"
+    },
+    {
+      "entity_id": "pay_000055",
+      "kind": "MISSING_SETTLEMENT"
+    },
+    {
+      "entity_id": "pay_000074",
+      "kind": "MISSING_SETTLEMENT"
+    },
+    {
+      "entity_id": "pay_000091b",
+      "kind": "DUPLICATE_PAYMENT"
+    },
+    {
+      "entity_id": "pay_000093",
+      "kind": "MISSING_SETTLEMENT"
+    },
+    {
+      "entity_id": "pay_000095",
+      "kind": "MISSING_SETTLEMENT"
+    },
+    {
+      "entity_id": "pay_000106",
+      "kind": "MISSING_SETTLEMENT"
+    },
+    {
+      "entity_id": "pay_000111",
+      "kind": "MISSING_SETTLEMENT"
+    },
+    {
+      "entity_id": "pay_000116",
+      "kind": "MISSING_SETTLEMENT"
+    },
+    {
+      "entity_id": "pay_000137",
+      "kind": "MISSING_SETTLEMENT"
+    },
+    {
+      "entity_id": "pay_000140",
+      "kind": "MISSING_SETTLEMENT"
+    },
+    {
+      "entity_id": "pay_000142",
+      "kind": "FEE_MISMATCH"
+    },
+    {
+      "entity_id": "setl_00009",
+      "kind": "BANK_FEE_DEDUCTED"
+    },
+    {
+      "entity_id": "setl_00011",
+      "kind": "BANK_FEE_DEDUCTED"
+    },
+    {
+      "entity_id": "setl_00013",
+      "kind": "MANGLED_UTR"
+    },
+    {
+      "entity_id": "setl_00014",
+      "kind": "BANK_FEE_DEDUCTED"
+    },
+    {
+      "entity_id": "setl_00015",
+      "kind": "BANK_FEE_DEDUCTED"
+    },
+    {
+      "entity_id": "setl_00016",
+      "kind": "BANK_FEE_DEDUCTED"
+    },
+    {
+      "entity_id": "setl_00018",
+      "kind": "BANK_FEE_DEDUCTED"
+    },
+    {
+      "entity_id": "setl_00019",
+      "kind": "BANK_FEE_DEDUCTED"
+    },
+    {
+      "entity_id": "setl_00021",
+      "kind": "MANGLED_UTR"
+    },
+    {
+      "entity_id": "setl_00022",
+      "kind": "BANK_FEE_DEDUCTED"
+    },
+    {
+      "entity_id": "setl_00023",
+      "kind": "BANK_FEE_DEDUCTED"
+    },
+    {
+      "entity_id": "setl_00026",
+      "kind": "BANK_FEE_DEDUCTED"
+    },
+    {
+      "entity_id": "setl_00028",
+      "kind": "BANK_FEE_DEDUCTED"
+    },
+    {
+      "entity_id": "setl_00030",
+      "kind": "BANK_FEE_DEDUCTED"
+    },
+    {
+      "entity_id": "setl_00032",
+      "kind": "MANGLED_UTR"
+    },
+    {
+      "entity_id": "setl_00033",
+      "kind": "BANK_FEE_DEDUCTED"
+    },
+    {
+      "entity_id": "setl_00038",
+      "kind": "BANK_FEE_DEDUCTED"
+    },
+    {
+      "entity_id": "setl_00040",
+      "kind": "BANK_FEE_DEDUCTED"
+    },
+    {
+      "entity_id": "setl_00042",
+      "kind": "BANK_FEE_DEDUCTED"
+    },
+    {
+      "entity_id": "setl_00043",
+      "kind": "BANK_FEE_DEDUCTED"
+    },
+    {
+      "entity_id": "setl_00048",
+      "kind": "BANK_FEE_DEDUCTED"
+    },
+    {
+      "entity_id": "setl_00050",
+      "kind": "BANK_FEE_DEDUCTED"
+    },
+    {
+      "entity_id": "setl_00051",
+      "kind": "MANGLED_UTR"
+    },
+    {
+      "entity_id": "setl_00055",
+      "kind": "BANK_FEE_DEDUCTED"
+    }
+  ],
+  "flagged_real": 52,
+  "flagged_total": 52,
+  "in_flight": [
+    "pay_000009",
+    "pay_000043",
+    "pay_000090",
+    "pay_000099",
+    "pay_000107",
+    "pay_000180"
+  ],
+  "in_flight_wrongly_flagged": 0,
+  "matched": [
+    {
+      "narration": "NEFT-AXISN26080400000-RAZORPAY",
+      "payment_ids": [
+        "pay_000006",
+        "pay_000018",
+        "pay_000026",
+        "pay_000028",
+        "pay_000032",
+        "pay_000033",
+        "pay_000039",
+        "pay_000045"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26080400002-RAZORPAY",
+      "payment_ids": [
+        "pay_000147",
+        "pay_000150",
+        "pay_000153",
+        "pay_000155",
+        "pay_000164",
+        "pay_000174",
+        "pay_000190",
+        "pay_000199"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26080500003-RAZORPAY",
+      "payment_ids": [
+        "pay_000005",
+        "pay_000014",
+        "pay_000020",
+        "pay_000034"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26080500004-RAZORPAY",
+      "payment_ids": [
+        "pay_000047",
+        "pay_000057",
+        "pay_000081",
+        "pay_000101"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26080500005-RAZORPAY",
+      "payment_ids": [
+        "pay_000130",
+        "pay_000169"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26080600006-RAZORPAY",
+      "payment_ids": [
+        "pay_000007",
+        "pay_000046",
+        "pay_000082"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26080600007-RAZORPAY",
+      "payment_ids": [
+        "pay_000115",
+        "pay_000134",
+        "pay_000166"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26080600008-RAZORPAY",
+      "payment_ids": [
+        "pay_000168",
+        "pay_000171"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26080700009-RAZORPAY",
+      "payment_ids": [
+        "pay_000003"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26080700010-RAZORPAY",
+      "payment_ids": [
+        "pay_000104"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26080700011-RAZORPAY",
+      "payment_ids": [
+        "pay_000160"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26081000012-RAZORPAY",
+      "payment_ids": [
+        "pay_000016",
+        "pay_000087",
+        "pay_000096"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26081000014-RAZORPAY",
+      "payment_ids": [
+        "pay_000187"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26081000015-RAZORPAY",
+      "payment_ids": [
+        "pay_000102",
+        "pay_000170",
+        "pay_000178"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26081100015-RAZORPAY",
+      "payment_ids": [
+        "pay_000001",
+        "pay_000015",
+        "pay_000037",
+        "pay_000056",
+        "pay_000064"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26081100016-RAZORPAY",
+      "payment_ids": [
+        "pay_000086",
+        "pay_000100",
+        "pay_000126",
+        "pay_000132",
+        "pay_000139"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26081100017-RAZORPAY",
+      "payment_ids": [
+        "pay_000148",
+        "pay_000162",
+        "pay_000184",
+        "pay_000197"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26081200018-RAZORPAY",
+      "payment_ids": [
+        "pay_000000",
+        "pay_000049",
+        "pay_000060"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26081200019-RAZORPAY",
+      "payment_ids": [
+        "pay_000067",
+        "pay_000123",
+        "pay_000125"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26081200020-RAZORPAY",
+      "payment_ids": [
+        "pay_000138",
+        "pay_000161",
+        "pay_000173"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26081300-RAZORPAY",
+      "payment_ids": [
+        "pay_000011",
+        "pay_000040",
+        "pay_000053"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26081300022-RAZORPAY",
+      "payment_ids": [
+        "pay_000071",
+        "pay_000079",
+        "pay_000163"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26081300023-RAZORPAY",
+      "payment_ids": [
+        "pay_000192"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26081400024-RAZORPAY",
+      "payment_ids": [
+        "pay_000041",
+        "pay_000051",
+        "pay_000112"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26081400025-RAZORPAY",
+      "payment_ids": [
+        "pay_000121",
+        "pay_000122",
+        "pay_000143"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26081400026-RAZORPAY",
+      "payment_ids": [
+        "pay_000172"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26081700028-RAZORPAY",
+      "payment_ids": [
+        "pay_000038",
+        "pay_000075",
+        "pay_000118"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26081700029-RAZORPAY",
+      "payment_ids": [
+        "pay_000156",
+        "pay_000191"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26081800030-RAZORPAY",
+      "payment_ids": [
+        "pay_000004",
+        "pay_000013",
+        "pay_000029",
+        "pay_000030",
+        "pay_000035",
+        "pay_000054",
+        "pay_000061",
+        "pay_000066",
+        "pay_000072",
+        "pay_000073"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26081800031-RAZORPAY",
+      "payment_ids": [
+        "pay_000084",
+        "pay_000085",
+        "pay_000089",
+        "pay_000091",
+        "pay_000091b",
+        "pay_000092",
+        "pay_000103",
+        "pay_000108",
+        "pay_000109",
+        "pay_000128"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26081800033-RAZORPAY",
+      "payment_ids": [
+        "pay_000131",
+        "pay_000142",
+        "pay_000152",
+        "pay_000154",
+        "pay_000157",
+        "pay_000158",
+        "pay_000159",
+        "pay_000188"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26081900033-RAZORPAY",
+      "payment_ids": [
+        "pay_000023",
+        "pay_000058",
+        "pay_000063"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26081900034-RAZORPAY",
+      "payment_ids": [
+        "pay_000077",
+        "pay_000135",
+        "pay_000181"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26081900035-RAZORPAY",
+      "payment_ids": [
+        "pay_000193"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26082000036-RAZORPAY",
+      "payment_ids": [
+        "pay_000012",
+        "pay_000017"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26082000037-RAZORPAY",
+      "payment_ids": [
+        "pay_000017b",
+        "pay_000027"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26082000038-RAZORPAY",
+      "payment_ids": [
+        "pay_000048"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26082100039-RAZORPAY",
+      "payment_ids": [
+        "pay_000010",
+        "pay_000059"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26082100040-RAZORPAY",
+      "payment_ids": [
+        "pay_000117",
+        "pay_000141"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26082100041-RAZORPAY",
+      "payment_ids": [
+        "pay_000167"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26082400042-RAZORPAY",
+      "payment_ids": [
+        "pay_000024",
+        "pay_000083"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26082400043-RAZORPAY",
+      "payment_ids": [
+        "pay_000113",
+        "pay_000186"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26082400044-RAZORPAY",
+      "payment_ids": [
+        "pay_000195",
+        "pay_000198"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26082500045-RAZORPAY",
+      "payment_ids": [
+        "pay_000002",
+        "pay_000036",
+        "pay_000042",
+        "pay_000050",
+        "pay_000052",
+        "pay_000052b",
+        "pay_000065",
+        "pay_000068",
+        "pay_000070",
+        "pay_000080"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26082500046-RAZORPAY",
+      "payment_ids": [
+        "pay_000094",
+        "pay_000097",
+        "pay_000105",
+        "pay_000110",
+        "pay_000114",
+        "pay_000120",
+        "pay_000124",
+        "pay_000127",
+        "pay_000129",
+        "pay_000136"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26082500047-RAZORPAY",
+      "payment_ids": [
+        "pay_000144",
+        "pay_000145",
+        "pay_000149",
+        "pay_000151",
+        "pay_000175",
+        "pay_000179",
+        "pay_000183",
+        "pay_000194"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26082600048-RAZORPAY",
+      "payment_ids": [
+        "pay_000069",
+        "pay_000119"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26082600049-RAZORPAY",
+      "payment_ids": [
+        "pay_000165",
+        "pay_000176"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26082600050-RAZORPAY",
+      "payment_ids": [
+        "pay_000189"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26082700-RAZORPAY",
+      "payment_ids": [
+        "pay_000021",
+        "pay_000025",
+        "pay_000076"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26082700052-RAZORPAY",
+      "payment_ids": [
+        "pay_000078",
+        "pay_000133",
+        "pay_000177"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26082700053-RAZORPAY",
+      "payment_ids": [
+        "pay_000185"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26082800054-RAZORPAY",
+      "payment_ids": [
+        "pay_000062",
+        "pay_000088"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26082800055-RAZORPAY",
+      "payment_ids": [
+        "pay_000098",
+        "pay_000146"
+      ]
+    },
+    {
+      "narration": "NEFT-AXISN26082800056-RAZORPAY",
+      "payment_ids": [
+        "pay_000182",
+        "pay_000196"
+      ]
+    }
+  ],
+  "money_at_risk_actual": 1944935,
+  "money_at_risk_reported": 1772188,
+  "money_bank_charges": 47874,
+  "money_captured": 45863022,
+  "money_fee_overcharged": 797,
+  "money_fee_unverified": 18785,
+  "money_in_flight": 1375426,
+  "money_missed": 140489,
+  "money_owed_back": 2371962,
+  "money_received": 42715408,
+  "money_unattributed_credit": 2795372,
+  "money_unconfirmed": 0,
+  "money_unexplained": 140489,
+  "money_unlinked": 209525,
+  "money_wrongly_cleared": 172747,
+  "order_count": 200,
+  "seed": 20260828,
+  "unnamed_problems": 3
+}

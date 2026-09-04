@@ -1,0 +1,4 @@
+55/63 credits explained (87.3% count, 93.4% value), precision 100.0%, 115,632 rec/s
+sorted 47 of 52 findings -> 3 groups: 2 diagnosed, 1 gave up, 0 refused, 0 unanswered; 21 individual; 22 findings given a verified cause, Rs 1,230.99 reclassified
+at risk Rs 17,721.88, missed Rs 1,404.89, wrongly cleared Rs 1,727.47, 3 problems unnamed on Rs 1,404.89
+results/report.md  results/ledger.json  results/trace.md
