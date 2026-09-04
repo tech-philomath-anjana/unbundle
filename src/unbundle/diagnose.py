@@ -602,6 +602,10 @@ def _adjudicate(
         return True, f"{len(members)} {members[0].method} payments within one window"
 
     if cause == "RATE_CARD_MISMATCH":
+        # A fee charged off the rate card is what a FEE_MISMATCH finding asks, and a payment flagged under both kinds sits in a group of each, so accepting
+        # this on the other one prints a rate dispute over captures that never settled and sends the merchant to argue a fee rather than chase a transfer
+        if group.kind != "FEE_MISMATCH":
+            return False, f"a rate card dispute does not explain a {group.kind} finding"
         members = [by_id[entity] for entity in cited if entity in by_id]
         # A payment with no agreed rate cannot support a rate card claim, comparing its fee against nothing reads as a mismatch on the one payment 
         # nothing can price. Citing one is enough to lose the claim, the model chose what to cite and every citation has to stand on its own
@@ -626,6 +630,10 @@ def _adjudicate(
         return True, f"{len(cited)} credits short by a transfer charge"
 
     if cause == "SETTLEMENT_NEVER_SENT":
+        # Why money never arrived is what a MISSING_SETTLEMENT finding asks, and a FEE_MISMATCH group holds payments that never settled too, so without this
+        # the fee finding is handed a verdict about the transfer and the merchant is told to check the fee
+        if group.kind != "MISSING_SETTLEMENT":
+            return False, f"a settlement never sent does not explain a {group.kind} finding"
         members = [by_id[entity] for entity in cited if entity in by_id]
         # Cite a settlement id and the filter above drops it, leaving nothing for the check below to disagree with, so a group of bank credits reads as nought
         # payments never settled and the claim is granted on an empty set
