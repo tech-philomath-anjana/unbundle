@@ -38,6 +38,7 @@ from unbundle.load import RowError, load
 from unbundle.record_types import Adjustment, BankLine, CardNetwork, Payment, Settlement
 from unbundle.money import Paise, format_amount
 from unbundle.synthetic import WINDOW_END, generate, write_csvs
+from unbundle.dashboard import settlement_shortfall
 from unbundle.reconcile import _drifts, expected_fee, match
 
 
@@ -72,6 +73,66 @@ def test_every_settlement_balances_against_its_payments():
         # Fee carries GST already, so the tax is not subtracted a second time and the
         # settlement is gross minus fees minus refunds
         assert settlement.amount == gross - fees - deducted - withheld
+
+
+# settlement_shortfall is a second copy of the tie-out in reconcile, and two copies of one rule
+# drift, so this pins it to the payments the generator really held back rather than to the wording
+# of the other copy
+def test_the_dashboard_finds_the_payments_a_settlement_held_back():
+    dataset = generate(order_count=1_200)
+
+    assigned: dict[str, list] = {}
+    for payment in dataset.payments:
+        if payment.settlement_id:
+            assigned.setdefault(payment.settlement_id, []).append(payment)
+    refunds: dict[str, int] = {}
+    for adjustment in dataset.adjustments:
+        refunds[adjustment.settlement_id] = (
+            refunds.get(adjustment.settlement_id, 0) + adjustment.amount
+        )
+
+    found = set()
+    for settlement in dataset.settlements:
+        members = assigned.get(settlement.settlement_id)
+        if not members:
+            continue
+        _, held_back = settlement_shortfall(
+            members, refunds.get(settlement.settlement_id, 0), settlement.amount
+        )
+        if held_back:
+            found.add(held_back)
+
+    planted = {label.entity_id for label in dataset.labels if label.kind == "HELD_BACK"}
+    # A seeded run has no settlement holding two payments of the same net, so the tie between
+    # them is unreachable from here and gets its own test below
+
+    # Or the two assertions below both pass on a seed that planted none, which is the dead
+    # assertion this project keeps finding
+    assert planted
+    # Naming a payment that was never held back is the direction that would put a real
+    # payment's money on the page as missing, so it is asserted separately from the count
+    assert not found - planted
+    assert found == planted
+
+
+# Two members of the same net both match the gap, so either one is a guess, and naming one puts
+# a payment that was paid on the page as held back. Built by hand because no seed produces it
+def test_two_payments_of_the_same_net_leave_the_gap_unnamed():
+    twins = [
+        _build_card_payment("pay_0001", "visa", 5_000),
+        _build_card_payment("pay_0002", "visa", 5_000),
+        _build_card_payment("pay_0003", "visa", 7_000),
+    ]
+    # The gap is exactly one twin's net, so it fits either of them and neither can be named
+    shortfall, held_back = settlement_shortfall(twins, 0, 12_000)
+    assert shortfall == 5_000
+    assert held_back is None
+
+    # And the same gap against one candidate is nameable, or the assertion above would pass
+    # on a function that never names anything at all
+    shortfall, held_back = settlement_shortfall(twins[1:], 0, 7_000)
+    assert shortfall == 5_000
+    assert held_back == "pay_0002"
 
 
 # The wall between the matcher and the answer key is a claim, and a claim about a repo
