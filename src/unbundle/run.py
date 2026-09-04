@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from datetime import date
 from pathlib import Path
 
-from unbundle.diagnose import Explanation, explain
+from unbundle.diagnose import MAX_TURNS, Explanation, explain
 from unbundle.evaluate import MatchOutcome, Report, check_books, evaluate
 from unbundle.synthetic import DEFAULT_SEED, WINDOW_END, generate, write_csvs
 from unbundle.load import load
@@ -12,9 +12,7 @@ from unbundle.reconcile import match
 from unbundle.record_types import Payment
 from unbundle.money import Paise, format_amount
 
-# Grouping is added here and not in format_amount, because it is presentation and it is
-# locale specific. Indian grouping puts the last three digits together then pairs, so a
-# lakh reads 1,00,000 and not 100,000
+# Grouping is added here and not in format_amount, because it is presentation and it is locale specific, so a lakh reads 1,00,000 and not 100,000
 def rupees(amount: Paise) -> str:
     whole, _, paise = format_amount(amount).partition(".")
     if len(whole) > 3:
@@ -33,12 +31,28 @@ DATA = Path("data")
 RESULTS = Path("results")
 
 
+# The adjudicator already checked the arithmetic, so this only sorts what it accepted and checks nothing again, and a citation carries the kind its group was 
+# built from because a payment flagged under two kinds would otherwise hand the second one a verdict nobody reached
+def _agent_verified(explanation: Explanation) -> tuple[frozenset[tuple[str, str]], frozenset[str]]:
+    accepted = [incident for incident in explanation.incidents if incident.accepted]
+    resolved = frozenset(
+        (entity, incident.kind) for incident in accepted for entity in incident.cited_ids
+    )
+    outage = frozenset(
+        entity
+        for incident in accepted
+        if incident.cause == "GATEWAY_OUTAGE"
+        for entity in incident.cited_ids
+    )
+    return resolved, outage
+
+
 def run(seed: int = DEFAULT_SEED, order_count: int = 5_000, as_of: date = WINDOW_END) -> None:
     dataset = generate(seed=seed, order_count=order_count)
     write_csvs(dataset, DATA)
 
-    # Timed from reading the files, not from the records already being in memory, because
-    # a merchant's run starts with five CSVs on disk and parsing them is most of the cost
+    # Timed from reading the files, not from the records already being in memory, because a merchant's run starts with five CSVs on disk and parsing them is 
+    # most of the cost
     started = time.perf_counter()
     data = load(DATA)
     outcome = match(
@@ -51,13 +65,15 @@ def run(seed: int = DEFAULT_SEED, order_count: int = 5_000, as_of: date = WINDOW
     )
     elapsed = time.perf_counter() - started
 
-    # Raises rather than reports, a run whose buckets do not add up has lost a payment and
-    # every figure below it is unsound. evaluate() runs the same check, and this call is
-    # ahead of explain() so a broken partition stops the run before any model spend
+    # Raises rather than reports, a run whose buckets do not add up has lost a payment and every figure below it is wrong. evaluate() checks it
+    # again later, this one is ahead of explain() so nothing is spent on a model first
     check_books(outcome, data.payments)
 
     explanation = explain(outcome, data.payments, data.settlements, data.bank_lines)
-    report = evaluate(dataset, outcome, seconds=elapsed)
+    agent_resolved, agent_outage = _agent_verified(explanation)
+    report = evaluate(
+        dataset, outcome, seconds=elapsed, agent_resolved=agent_resolved, agent_outage=agent_outage
+    )
 
     RESULTS.mkdir(parents=True, exist_ok=True)
     _write_ledger(outcome, report, seed, order_count, as_of)
@@ -67,9 +83,8 @@ def run(seed: int = DEFAULT_SEED, order_count: int = 5_000, as_of: date = WINDOW
     print(_summary(report, explanation))
 
 
-# Deterministic and hashable, so two runs on one seed are byte identical. Nothing here
-# comes from the model and no float is written, because a float in a hashed file is both
-# a wrong number and a broken guarantee
+# Deterministic and hashable, so two runs on one seed are byte identical. Nothing here comes from the model and no float is written, because a float does not 
+# come out the same twice and the file would stop being byte identical
 def _write_ledger(
     outcome: MatchOutcome, report: Report, seed: int, order_count: int, as_of: date
 ) -> None:
@@ -88,6 +103,12 @@ def _write_ledger(
         "money_at_risk_reported": report.money_at_risk_reported,
         "money_missed": report.money_missed,
         "money_wrongly_cleared": report.money_wrongly_cleared,
+        "unnamed_problems": report.unnamed_problems,
+        "money_unexplained": report.money_unexplained,
+        "money_unattributed_credit": report.money_unattributed_credit,
+        "money_owed_back": report.money_owed_back,
+        "money_bank_charges": report.money_bank_charges,
+        "money_fee_overcharged": report.money_fee_overcharged,
         "money_in_flight": report.money_in_flight,
         "money_unlinked": report.money_unlinked,
         "money_fee_unverified": report.money_fee_unverified,
@@ -130,10 +151,13 @@ def _write_report(
     diagnosed = [
         incident
         for incident in explanation.incidents
-        if incident.accepted and incident.cause != "NONE_OF_THESE"
+        if incident.accepted and incident.cause != "GAVE_UP"
     ]
-    refused = [incident for incident in explanation.incidents if incident.cause == "NONE_OF_THESE"]
-    rejected = [incident for incident in explanation.incidents if not incident.accepted]
+    refused = [incident for incident in explanation.incidents if incident.cause == "GAVE_UP"]
+    # A group the adjudicator turned down is kept apart from one the model never answered, because the sentence below credits the arithmetic with
+    # rejecting a cause and there was no cause to reject when the request failed or the reply carried no tool call
+    rejected = [incident for incident in explanation.incidents if incident.cause == "NOT_DIAGNOSED"]
+    unanswered = [incident for incident in explanation.incidents if incident.cause == "NOT_ANSWERED"]
     individual_value = sum(amount_by_payment.get(entity, 0) for entity in explanation.individual)
 
     lines = [
@@ -153,10 +177,29 @@ def _write_report(
         f"- **{rupees(report.money_at_risk_reported)}** at risk, captured and past due "
         "with nothing settled",
         "",
+        "## Money at stake",
+        "",
+        "Each line is a different kind of exposure and they are not added up, because a credit "
+        "that arrived unattributed and a payment owed back to a customer are not the same money.",
+        "",
+        f"- {rupees(report.money_unattributed_credit)} credited to the bank that this run cannot "
+        "tie to any settlement or order",
+        f"- {rupees(report.money_at_risk_reported)} captured and past due with nothing settled",
+        f"- {rupees(report.money_unlinked)} of orders that tie to no payment at all",
+        f"- {rupees(report.money_owed_back)} charged to customers twice and owed back",
+        f"- {rupees(report.money_fee_unverified)} of fees with no published rate to check against",
+        f"- {rupees(report.money_fee_overcharged)} charged above the agreed rate card",
+        f"- {rupees(report.money_bank_charges)} taken by the bank on the transfers",
+        "",
         "## What this run may have got wrong",
         "",
-        f"- {rupees(report.money_missed)} missing that this run did not surface",
+        f"- {rupees(report.money_missed)} of money due that this run did not surface. Reads the "
+        "missing settlement class alone, so the two lines below cover the seven other kinds",
         f"- {rupees(report.money_wrongly_cleared)} reported as reconciled that was not",
+        f"- {report.unnamed_problems} planted problems the run never named, across all eight "
+        "kinds. The detection table below says which",
+        f"- {rupees(report.money_unexplained)} sitting on records the run noticed under no kind "
+        "at all, counted once per record rather than once per label",
         f"- {rupees(report.money_fee_unverified)} of fees charged on payments whose card "
         "network the export does not name, so no published rate exists to check them against",
         "",
@@ -168,23 +211,37 @@ def _write_report(
         f"- {report.in_flight_wrongly_flagged} healthy in flight payments wrongly reported as a problem",
         f"- {rupees(report.money_unlinked)} of orders that tie to no payment at all",
         f"- {report.records_per_second:,.0f} records per second",
-        "",
-        "## What to look at",
-        "",
     ]
+    if explanation.available:
+        lines.append(
+            f"- {report.flagged_agent_explained} of those findings were given a cause the agent "
+            f"stage verified against the records, covering {rupees(report.value_behind_agent_findings)} "
+            f"of turnover, of which {rupees(report.money_agent_reclassified)} is money whose "
+            "disposition the verdict decides, wait for a gateway to recover or escalate it"
+        )
+    lines += ["", "## What to look at", ""]
 
     if not explanation.available:
+        # explanation.trace[-1] carries the real reason from _no_model_reason, so this line cannot name a stale key when the provider list changes, 
+        # the way it did when the project moved from Anthropic-only to Groq first
         lines += [
-            "> Agent stage skipped: no ANTHROPIC_API_KEY set. Findings are grouped but not",
-            "> diagnosed. `make refusal` runs the adjudicator against a model that answers",
-            "> every group the same way, and needs no key.",
+            f"> Agent stage skipped, {explanation.trace[-1]}.",
+            "> `make refusal` runs the adjudicator against a model that answers every group",
+            "> the same way, and needs no key.",
             "",
         ]
 
     for incident in diagnosed:
-        lines.append(f"### {incident.cause}  ({len(incident.member_ids)} findings)")
+        # cited_ids is what the model actually checked, member_ids is the whole group it was asked about. The two differ when INNER_MAX_ROUNDS stops the 
+        # model short, and reporting the group size there would claim a cause for records nobody looked at
+        verified, total = len(incident.cited_ids), len(incident.member_ids)
+        header = f"{verified} findings" if verified == total else f"{verified} of {total} findings"
+        lines.append(f"### {incident.cause}  ({header})")
         lines.append("")
-        lines.append(f"{incident.shared}. {incident.reason}.")
+        text = f"{incident.shared}. {incident.reason}."
+        if verified < total:
+            text += f" The other {total - verified} in this group were not individually checked."
+        lines.append(text)
         lines.append("")
 
     if refused:
@@ -215,10 +272,32 @@ def _write_report(
             lines.append(f"- {incident.shared}: {incident.reason}")
         lines.append("")
 
+    if unanswered and explanation.available:
+        lines += [
+            f"## {len(unanswered)} groups the model never answered",
+            "",
+            "Not a refusal and not a rejection, the model produced nothing the loop could read "
+            f"on any of its {MAX_TURNS} attempts. The last reason is shown.",
+            "",
+        ]
+        for incident in unanswered[:5]:
+            lines.append(f"- {incident.shared}: {incident.reason}")
+        lines.append("")
+
     lines += ["## Detection by class", "", "| class | expected | detected |", "|---|---|---|"]
     for result in report.by_class:
         lines.append(f"| {result.kind} | {result.expected} | {result.detected} |")
     lines.append("")
+    if explanation.available:
+        # This table is the deterministic cascade only, GATEWAY_OUTAGE reads 0 there on purpose because reconcile.py never emits that kind. The agent stage
+        # is where it is actually checked, against the planted label and not just the model's word
+        lines += [
+            f"GATEWAY_OUTAGE reads 0 detected above because the cascade never emits that "
+            f"kind. The agent stage separately verified {report.gateway_outage_agent_verified} "
+            f"of the {next(r.expected for r in report.by_class if r.kind == 'GATEWAY_OUTAGE')} "
+            "planted, checked against the answer key and not just accepted on the model's say.",
+            "",
+        ]
 
     (RESULTS / "report.md").write_text("\n".join(lines))
 
@@ -234,20 +313,27 @@ def _summary(report: Report, explanation: Explanation) -> str:
     diagnosed = sum(
         1
         for incident in explanation.incidents
-        if incident.accepted and incident.cause != "NONE_OF_THESE"
+        if incident.accepted and incident.cause != "GAVE_UP"
     )
-    # Nothing was rejected when nothing was proposed, and reporting a skipped stage as a
-    # rejection would understate the number the adjudicator actually earns
-    rejected = (
-        sum(1 for incident in explanation.incidents if not incident.accepted)
-        if explanation.available
-        else 0
+    # The four outcomes are counted separately and printed beside the group total, so the line adds up and cannot credit the adjudicator with a group the model 
+    # never answered. A give up used to fall through every count and the tally came out short of the groups it was describing
+    counted = {
+        "gave up": sum(1 for incident in explanation.incidents if incident.cause == "GAVE_UP"),
+        "refused": sum(1 for incident in explanation.incidents if incident.cause == "NOT_DIAGNOSED"),
+        "unanswered": sum(1 for incident in explanation.incidents if incident.cause == "NOT_ANSWERED"),
+    }
+    tally = ", ".join(f"{count} {name}" for name, count in counted.items())
+    # This counts what the agent stage was shown and not flagged_total, because group_findings does not sort every kind
+    sorted_count = sum(len(incident.member_ids) for incident in explanation.incidents) + len(
+        explanation.individual
     )
     middle = (
-        f"{report.flagged_total} findings -> {diagnosed} incidents, "
-        f"{rejected} proposals rejected, {len(explanation.individual)} individual"
+        f"sorted {sorted_count} of {report.flagged_total} findings -> {len(explanation.incidents)} groups: "
+        f"{diagnosed} diagnosed, {tally}; {len(explanation.individual)} individual; "
+        f"{report.flagged_agent_explained} findings given a verified cause, "
+        f"{rupees(report.money_agent_reclassified)} reclassified"
         if explanation.available
-        else f"{report.flagged_total} findings grouped, not diagnosed (no model configured)"
+        else f"sorted {sorted_count} of {report.flagged_total} findings, not diagnosed (no model configured)"
     )
     return (
         f"{report.credits_matched}/{report.credits_total} credits explained "
@@ -256,7 +342,8 @@ def _summary(report: Report, explanation: Explanation) -> str:
         f"{middle}\n"
         f"at risk {rupees(report.money_at_risk_reported)}, "
         f"missed {rupees(report.money_missed)}, "
-        f"wrongly cleared {rupees(report.money_wrongly_cleared)}\n"
+        f"wrongly cleared {rupees(report.money_wrongly_cleared)}, "
+        f"{report.unnamed_problems} problems unnamed on {rupees(report.money_unexplained)}\n"
         f"results/report.md  results/ledger.json  results/trace.md"
     )
 
