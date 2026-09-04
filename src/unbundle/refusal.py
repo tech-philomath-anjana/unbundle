@@ -61,8 +61,11 @@ def _split_by_correctness(
     return clean, dirty, gave_up
 
 
+# Matches run.py rather than running bigger, which this one could since it needs no key, so
+# both artifacts in results/ describe the same groups, once diagnosed by a real model and
+# once by a proposer that lies about every one
 def run(
-    seed: int = DEFAULT_SEED, order_count: int = 5_000, as_of: date = WINDOW_END
+    seed: int = DEFAULT_SEED, order_count: int = 3_000, as_of: date = WINDOW_END
 ) -> None:
     dataset = generate(seed=seed, order_count=order_count)
     outcome = match(
