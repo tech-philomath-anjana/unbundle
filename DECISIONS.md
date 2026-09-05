@@ -106,6 +106,33 @@ in the report that a merchant would care about.
 
 ---
 
+## The gateway side is two exports, and the recon report is split by type
+
+**What.** Razorpay's recon endpoint is `/v1/settlements/recon/combined` and it returns one
+collection where every row carries a type of payment, refund, transfer or adjustment. That single
+report is loaded here as two files, `payments.csv` for the payment rows and `adjustments.csv` for
+the refunds and the adjustments. `settlements.csv` is a genuinely separate source, the settlement
+entity, and it is where the utr, the status and the amount actually sent come from. From
+https://razorpay.com/docs/api/settlements/fetch-recon/
+
+**Why two tables and not one.** A payment row carries a method, a card network, a card type and a
+fee, and an adjustment row carries a payment id pointing at a sale that can be months old and no
+method at all, so one table means half the columns are null on every row. A blank card type
+already means something specific here, it is the export dropping a column, so a blank because the
+row is a refund and a blank because the column went missing would be the same value and nothing
+could tell them apart.
+
+**Rejected: one gateway file with a type column, the way the API returns it.** It is the more
+faithful shape and that is a real argument for it. What it costs is that every consumer branches
+on the type before it can read any other field, so the payment loop, the fee check, the duplicate
+check and the settlement tie-out each grow a test that has nothing to do with what they are for.
+
+**What this costs.** A real recon report would need reshaping before `load.py` would take it, so
+the loader reads the shape this project writes rather than the shape Razorpay sends. The transfer
+type is not modelled at all, since that is Route and this project has no sub-merchants.
+
+---
+
 ## Joining the merchant's orders to the gateway
 
 Decided 31 August 2026, built 1 September.
