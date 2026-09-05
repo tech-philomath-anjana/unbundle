@@ -225,6 +225,11 @@ footer{display:flex;justify-content:space-between;padding-top:16px;
   <button class="btn press" onclick="openFiles(0)">View source files</button>
 </header>
 
+<div style="margin:0 4px 12px"><h2>Cash position</h2>
+  <p style="font-size:12px;color:var(--faint);margin-top:2px">
+    Every captured payment sits in exactly one of these and the run fails if they do not add up to
+    what was captured</p></div>
+
 <div class="grid4"><div class="card stat"><div style="display:flex;justify-content:space-between;align-items:center"><span class="stat-name">Received</span><span class="pill pill-ok"><span class="d"></span>Reconciled</span></div><span class="money m-xl "><span class="sym">Rs</span><span class="val">69,23,256.83</span></span><div class="stat-sub">confirmed by 54 bank credits</div></div><div class="card stat"><div style="display:flex;justify-content:space-between;align-items:center"><span class="stat-name">In flight</span><span class="pill pill-fly"><span class="d"></span>Healthy</span></div><span class="money m-xl "><span class="sym">Rs</span><span class="val">6,08,596.16</span></span><div class="stat-sub">202 payments, due but not arrived</div></div><div class="card stat"><div style="display:flex;justify-content:space-between;align-items:center"><span class="stat-name">At risk</span><span class="pill pill-att"><span class="d"></span>Needs review</span></div><span class="money m-xl "><span class="sym">Rs</span><span class="val">3,80,022.12</span></span><div class="stat-sub">captured, past due, nothing settled</div></div>
   <div class="card stat"><div><span class="label">Credits matched</span>
     <div class="tnum" style="font-size:24px;font-weight:600;color:var(--navy);margin-top:4px">

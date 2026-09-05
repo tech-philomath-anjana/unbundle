@@ -27,6 +27,8 @@ every cause is checked against the ledger before it counts.
 - [Incidents, not a list of rows](#incidents-not-a-list-of-rows)
 - [What a run produces](#what-a-run-produces)
 - [What it did](#what-it-did)
+- [The cash position](#the-cash-position)
+- [On seeds it was never tuned on](#on-seeds-it-was-never-tuned-on)
 - [The honest exception list](#the-honest-exception-list)
 - [Run it](#run-it)
 - [Limitations](#limitations)
@@ -321,7 +323,7 @@ the matcher, since opening five files costs the same whether there are 169 rows 
 104,008. Past a few thousand records it flattens out, so the figure that describes the tool is
 the 140,912 and not the 97,166.
 
-### The cash position
+## The cash position
 
 Every captured payment ends in exactly one of four states and the run fails if they do not add
 up to what was captured.
@@ -369,7 +371,7 @@ Rs 9,396.90   reported as reconciled that was not
 14            planted problems the run never named at all
 ```
 
-### On seeds it was never tuned on
+## On seeds it was never tuned on
 
 Every figure above comes from seed `20260828`, which is the seed the matcher was built against,
 so it is the one number that cannot be trusted on its own. Five seeds picked arbitrarily, same

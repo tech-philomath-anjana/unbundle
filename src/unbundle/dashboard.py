@@ -764,6 +764,11 @@ def render(view: dict) -> str:
   <button class="btn press" onclick="openFiles(0)">View source files</button>
 </header>
 
+<div style="margin:0 4px 12px"><h2>Cash position</h2>
+  <p style="font-size:12px;color:var(--faint);margin-top:2px">
+    Every captured payment sits in exactly one of these and the run fails if they do not add up to
+    what was captured</p></div>
+
 <div class="grid4">{stat_html}
   <div class="card stat"><div><span class="label">Credits matched</span>
     <div class="tnum" style="font-size:24px;font-weight:600;color:var(--navy);margin-top:4px">
