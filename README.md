@@ -47,8 +47,10 @@ say where each one comes from, apart from the throughput and untuned seed tables
 `make bench`. The seed figures there reproduce exactly, and the records a second are wall clock so
 they move a little from machine to machine and run to run.
 
-The quickest way in is `dashboard.html`, which is already built and committed, so double
-clicking it out of a clone needs no setup, no key and no terminal.
+The quickest way in is the dashboard, live at
+https://tech-philomath-anjana.github.io/unbundle/dashboard.html, so it needs no clone, no setup,
+no key and no terminal. The same page is committed as `dashboard.html`, so double clicking it out
+of a clone works the same way.
 Click a bank credit to see the arithmetic behind it, click View source files for the five raw
 CSVs it was built from.
 
