@@ -556,4 +556,6 @@ src/unbundle/  money.py           integer paise arithmetic. Pure, no I/O, no dat
 results/               the published run: ledger, report, trace, refusal
 live-run-evidence/     real keyed runs, including a rate-limited one
 dashboard.html         the run as one page, no server needed
+DECISIONS.md           what was decided, why, and what was rejected
+FAILURE.md             what broke, what it cost, and what caught it
 ```
