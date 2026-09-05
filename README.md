@@ -301,6 +301,7 @@ Seed `20260828`, 3,000 orders, as of 2026-08-28. Everything below is in `results
 | False alarms on healthy money | 0 in flight payments wrongly reported as a problem |
 | Agent contribution | 34 groups over 53 turns: 28 accepted, 19 rejected, 4 gave up, 2 provider retries |
 | Agent refusal rate | 34 of 34 confabulated proposals refused |
+| Refusals on the keyed run | 6 of 34 groups ended with no cause, 4 by giving up and 2 with every cause rejected |
 
 Count and value are both reported because they diverge, and a run can miss few credits while
 missing most of the money, or the other way round, so one figure on its own does not say which
@@ -370,6 +371,11 @@ Rs 5,177.87   money due that this run did not surface
 Rs 9,396.90   reported as reconciled that was not
 14            planted problems the run never named at all
 ```
+
+Those 14 are the two zero rows in the detection table, 10 `GATEWAY_OUTAGE` and 4 `HELD_BACK`,
+and the second one matters more, since `reconcile.py` already works the held back amount out
+and nothing reports it, so the money reads as arrived when it never came. Limitations says why
+that is left in.
 
 ## On seeds it was never tuned on
 
@@ -502,8 +508,8 @@ above, so a table where both look identical would hide the difference.
 `ROUNDING_DRIFT` reads 23 of 50 because only those sit on a settlement the matcher can price in
 full, and on the other 27 it says nothing rather than compare a group it cannot price.
 
-Drift is the normal case and not an edge case, which is why there is a tolerance at all. A
-batch level fee and the sum of the per payment fees disagree because each fee is rounded once:
+Drift is the normal case and not an edge case. A batch level fee and the sum of the per payment
+fees disagree because each fee is rounded once:
 
 ```
 2,000 batches of 40 payments at 200bps      78.2% drifted
@@ -512,12 +518,18 @@ batch level fee and the sum of the per payment fees disagree because each fee is
 ```
 
 Each fee is within half a paisa of exact, so the drift scales with the number of payments and
-not with the amount, and exact matching would reject four correct settlements in five. That
-measurement is what the tolerance policy rests on and it is what a naive `==` gets wrong.
+not with the amount, and a plain `==` between the two figures disagrees on four batches in five.
 
-There is no tolerance sensitivity curve. The policy rests on the measurement above rather than
-on a sweep showing what a tighter or looser tolerance would have cost, so the number is
-defended by the bound it comes from and not by what happens either side of it.
+That comparison is the gateway side and `_drifts` is where it happens, a settlement's own
+payments against the fee on their total. The bank side is a different comparison and it runs at
+zero tolerance, since `match` takes a `tolerance` and `run.py` passes none, so a credit either
+equals what the settlement said it sent or it does not. What forgives a credit arriving short
+is `BANK_FEE_CEILING`, Rs 100, so anything short by less than that is matched and flagged
+`BANK_FEE_DEDUCTED` rather than refused, and those are the 15 in the detection table.
+
+It forgives one direction only, so a credit arriving over what the settlement said is refused
+at one paisa and lands in `UNKNOWN_CREDIT`. Nothing in this run arrives over, so that case is
+untested rather than handled.
 
 Four classes are too thin to measure, `PARTIAL_REFUND` 4, `UNKNOWN_CREDIT` 6,
 `CHARGEBACK_LATER` 4 and `MANGLED_UTR` 8. One miss on a four item class is twenty five points,
@@ -528,7 +540,8 @@ comes out thin.
 The bank charge ceiling is a judgement and not a measurement. A credit short by up to Rs 100 is
 treated as the bank's transfer fee and more than that is not guessed at, so a real bank
 charging more would have its credits reported as unexplained. That is the safe direction to be
-wrong in, but the number was chosen rather than derived.
+wrong in, but the number was chosen rather than derived, and there is no sweep beside it
+showing what a tighter or looser ceiling would have cost.
 
 Nothing has run against real data. Every figure here comes from synthetic data whose problems
 this project planted, which is what makes detection measurable and is also the ceiling on what
