@@ -1,4 +1,4 @@
-.PHONY: test reproduce refusal dashboard clean
+.PHONY: test reproduce refusal bench dashboard clean
 
 test:
 	.venv/bin/pytest -q
@@ -8,6 +8,9 @@ reproduce:
 
 refusal:
 	.venv/bin/python -m unbundle.refusal
+
+bench:
+	.venv/bin/python -m unbundle.bench
 
 dashboard:
 	.venv/bin/python -m unbundle.dashboard
