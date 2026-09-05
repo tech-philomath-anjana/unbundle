@@ -548,6 +548,7 @@ src/unbundle/  money.py           integer paise arithmetic. Pure, no I/O, no dat
                diagnose.py        the agent on the residue, and incidents
                refusal.py         the agent against planted lies, for the refusal rate
                run.py             the pipeline end to end, writes results/
+               bench.py           the throughput and untuned seed tables
                dashboard.py       renders a finished run as one static dashboard.html
 
 results/               the published run: ledger, report, trace, refusal
