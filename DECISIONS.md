@@ -163,6 +163,35 @@ model has to hold what the merchant's file actually contains.
 
 ---
 
+## The model works the residue, and arithmetic decides whether it was right
+
+**What.** Deterministic code reconciles the batch first and raises the findings. Only findings
+that group are put to the model, 316 of 6,368 rows on the published run, and the model names a
+cause and cites record ids rather than writing a conclusion. `_adjudicate` re-derives that cause
+from the cited records before it counts for anything.
+
+**Why the residue and not the batch.** The deterministic pass already resolves 6,052 of 6,368
+records, 95 percent, and not one of them needs help. Putting a model in front of arithmetic that
+works trades a checkable answer for an unverifiable one, and pays for it in latency and cost.
+
+**What the model never touches.** No amount is computed by a model. Every rupee enters through
+`money.py`, and `_write_ledger` takes the outcome and the report and not the explanation, so
+`ledger.json` reproduces from the seed byte for byte while `report.md` varies with the run.
+Grouping is deterministic and happens first, so the model is handed groups and never decides
+what belongs with what.
+
+**Rejected: letting the model answer where nothing can refute it.** Every cause in the set is a
+shape arithmetic can confirm or refuse. A free explanation for money that never arrived would be
+unfalsifiable from the data, and being wrong there means telling a merchant they are fine when
+they are short.
+
+**Rejected: no model at all.** The residue is where the records genuinely do not say what
+happened, and turning a few hundred scattered findings into incidents with a named cause is the
+part of the morning a person actually spends. Refusing a model there would be restraint for its
+own sake.
+
+---
+
 ## The proposer is one injectable function
 
 **What.** `explain()` takes a `propose` callable. The Anthropic client is built inside
