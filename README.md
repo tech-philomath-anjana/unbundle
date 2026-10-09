@@ -2,6 +2,8 @@
 
 Razorpay AI Buildathon: Track 04 | AI Finance Controller.
 
+Shortlisted, cleared the tech round, made it to HM.
+
 A bank credit is one payment covering many orders and nothing in it says which orders those
 are, so the merchant's records, the gateway's and the bank's never line up on their own.
 unbundle works out what is inside each credit, checks that the money actually arrived and
